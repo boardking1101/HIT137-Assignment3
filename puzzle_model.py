@@ -23,10 +23,16 @@ class PuzzleError(Exception):
 class Tile:
     """Encapsulates a tile's identity, pixels, and orientation."""
 
+    _IDENTITY = np.eye(2, dtype=np.int8)
+    _ROTATE_CLOCKWISE = np.array([[0, -1], [1, 0]], dtype=np.int8)
+    _FLIP_HORIZONTAL = np.array([[-1, 0], [0, 1]], dtype=np.int8)
+    _FLIP_VERTICAL = np.array([[1, 0], [0, -1]], dtype=np.int8)
+
     def __init__(self, tile_id: int, image: np.ndarray) -> None:
         self._tile_id = tile_id
         self._original_image = image.copy()
         self._current_image = image.copy()
+        self._orientation = self._IDENTITY.copy()
 
     @property
     def tile_id(self) -> int:
@@ -41,6 +47,7 @@ class Tile:
             self._current_image,
             cv2.ROTATE_90_CLOCKWISE,
         )
+        self._orientation = self._ROTATE_CLOCKWISE @ self._orientation
 
     def rotate(self, angle: int) -> None:
         if angle not in (90, 180, 270):
@@ -50,15 +57,18 @@ class Tile:
 
     def flip_horizontal(self) -> None:
         self._current_image = cv2.flip(self._current_image, 1)
+        self._orientation = self._FLIP_HORIZONTAL @ self._orientation
 
     def flip_vertical(self) -> None:
         self._current_image = cv2.flip(self._current_image, 0)
+        self._orientation = self._FLIP_VERTICAL @ self._orientation
 
     def reset_orientation(self) -> None:
         self._current_image = self._original_image.copy()
+        self._orientation = self._IDENTITY.copy()
 
     def orientation_is_correct(self) -> bool:
-        return np.array_equal(self._current_image, self._original_image)
+        return bool(np.array_equal(self._orientation, self._IDENTITY))
 
 
 class PuzzleModel:
